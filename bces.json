@@ -1,0 +1,35 @@
+[
+    {
+      "name": "Bitcoin Beach",
+      "city": "El Zonte",
+      "country": "El Salvador",
+      "region": "Latin America",
+      "lat": 13.493,
+      "lon": -89.38,
+      "status": "confirmed",
+      "link": "https://twitter.com/bitcoinbeach",
+      "note": "Original circular economy."
+    },
+    {
+      "name": "Bitcoin Berlin (Usulután)",
+      "city": "Usulután",
+      "country": "El Salvador",
+      "region": "Latin America",
+      "lat": 13.345,
+      "lon": -88.439,
+      "status": "reached",
+      "link": "https://twitter.com/btcberlin_sv",
+      "note": "Grassroots initiative."
+    },
+    {
+      "name": "Bitcoin Las Tunas",
+      "city": "La Unión",
+      "country": "El Salvador",
+      "region": "Latin America",
+      "lat": 13.309,
+      "lon": -87.843,
+      "status": "none",
+      "link": "",
+      "note": "Developing."
+    }
+  ]

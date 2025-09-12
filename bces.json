@@ -11,31 +11,5 @@
     "last_contact": "2025-09-11",
     "contact_person": "",
     "channel": "X DM"
-  },
-  {
-    "name": "Bitcoin Berlín",
-    "city": "Berlín, Usulután",
-    "country": "El Salvador",
-    "region": "Latin America",
-    "lat": 13.49786,
-    "lon": -88.53050038066988,
-    "link": "https://x.com/BitcoinBerlinSV",
-    "note": "Up in the mountains!",
-    "last_contact": "",
-    "contact_person": "",
-    "channel": ""
-  },
-  {
-    "name": "Bitcoin Beach",
-    "city": "El Zonte, La Libertad 🇸🇻",
-    "country": "El Salvador",
-    "region": "Latin America",
-    "lat": 13.493,
-    "lon": -89.38,
-    "link": "https://twitter.com/bitcoinbeach",
-    "note": "Original circular economy.",
-    "last_contact": "2025-09-11",
-    "contact_person": "",
-    "channel": "X DM"
   }
 ]

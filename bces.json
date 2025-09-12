@@ -13,27 +13,14 @@
     "channel": "X DM"
   },
   {
-    "name": "Bitcoin Berlin",
+    "name": "Bitcoin Berlín",
     "city": "Berlín, Usulután",
     "country": "El Salvador",
     "region": "Latin America",
     "lat": 13.49786,
     "lon": -88.53050038066988,
     "link": "https://x.com/BitcoinBerlinSV",
-    "note": "Up in the mountains",
-    "last_contact": "",
-    "contact_person": "",
-    "channel": ""
-  },
-  {
-    "name": "Bitcoin Berlin",
-    "city": "Berlín, Usulután",
-    "country": "El Salvador",
-    "region": "Latin America",
-    "lat": 13.49786,
-    "lon": -88.53050038066988,
-    "link": "https://x.com/BitcoinBerlinSV",
-    "note": "Up in the mountains",
+    "note": "Up in the mountains!",
     "last_contact": "",
     "contact_person": "",
     "channel": ""

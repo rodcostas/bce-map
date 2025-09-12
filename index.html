@@ -2,131 +2,256 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Global Bitcoin Circular Economies</title>
+  <title>BCE Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    html, body { height: 100%; margin: 0; font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    html, body { height: 100%; margin: 0; font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     #map { position: absolute; inset: 56px 0 0 0; }
-    header { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: #111; color: #fff; display: flex; align-items: center; gap: 12px; padding: 0 14px; z-index: 1000; }
+    header { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: #111; color: #fff;
+             display: flex; align-items: center; gap: 12px; padding: 0 14px; z-index: 1000; }
     header h1 { font-size: 16px; margin: 0 8px 0 0; font-weight: 600; }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    select, input { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; }
-    .legend { position: fixed; bottom: 12px; left: 12px; background: #fff; padding: 8px 10px; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.12); z-index: 999; }
-    .legend div { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #111; display: inline-block; }
+    input[type="search"] { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; }
+    .btn { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; background:#f9f9f9; cursor:pointer; }
     .popup h3 { margin: 0 0 4px; font-size: 16px; }
     .popup .meta { color: #555; margin-bottom: 6px; }
-    .popup a { text-decoration: none; }
+
+    /* Admin panel */
+    #admin { position: fixed; right: 12px; top: 64px; width: 420px; max-height: 80vh; overflow: auto;
+             background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.18); padding:12px; z-index: 1200; display:none; }
+    #admin h2 { margin: 0 0 8px; font-size: 16px; }
+    #admin input, #admin select { width: 100%; margin: 4px 0 8px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; }
+    #admin table { width:100%; border-collapse: collapse; font-size: 12px; }
+    #admin th, #admin td { border-bottom: 1px solid #eee; padding: 6px; text-align: left; vertical-align: top; }
+    #admin .row-actions button { margin-right: 6px; }
+    #admin .muted { color:#666; font-size:12px; }
+    details summary { cursor: pointer; }
   </style>
 </head>
 <body>
 <header>
   <h1>BCE Map</h1>
   <div class="controls">
-    <label>Status
-      <select id="statusFilter">
-        <option value="all">All</option>
-        <option value="confirmed">Contact confirmed</option>
-        <option value="reached">Reached out</option>
-        <option value="none">Not contacted</option>
-      </select>
-    </label>
-    <label>Region
-      <select id="regionFilter">
-        <option value="all">All</option>
-        <option>Latin America</option>
-        <option>Africa</option>
-        <option>Southeast Asia</option>
-        <option>Europe</option>
-        <option>North America</option>
-        <option>Other</option>
-      </select>
-    </label>
-    <input id="search" type="search" placeholder="Search name/city/country…" />
+    <input id="search" type="search" placeholder="Search name/city/country…"/>
+    <button id="toggleAdmin" class="btn">Admin</button>
   </div>
 </header>
 
 <div id="map"></div>
 
-<div class="legend">
-  <div><span class="dot" style="background:#16a34a"></span> Contact confirmed</div>
-  <div><span class="dot" style="background:#f59e0b"></span> Reached out</div>
-  <div><span class="dot" style="background:#ef4444"></span> Not contacted</div>
+<!-- ======= ADMIN PANEL ======= -->
+<div id="admin">
+  <h2>BCE Editor</h2>
+  <div class="muted">Add/edit entries below, then <b>Export JSON</b> and commit it as <code>bces.json</code> to update the live site.</div>
+
+  <details style="margin:8px 0" open>
+    <summary><b>Add / Update Entry</b></summary>
+    <div>
+      <input id="f_name" placeholder="Name (required)"/>
+      <input id="f_city" placeholder="City"/>
+      <input id="f_country" placeholder="Country"/>
+      <select id="f_region">
+        <option>Latin America</option><option>Africa</option><option>Southeast Asia</option>
+        <option>Europe</option><option>North America</option><option>Other</option>
+      </select>
+      <input id="f_lat" placeholder="Latitude (e.g., 13.493) — required"/>
+      <input id="f_lon" placeholder="Longitude (e.g., -89.38) — required"/>
+      <input id="f_link" placeholder="Link (X/Telegram/site)"/>
+      <input id="f_note" placeholder="Public note (shown on popup)"/>
+      <!-- private/internal fields kept in JSON but not shown on map -->
+      <input id="f_last" placeholder="Internal last_contact (YYYY-MM-DD)"/>
+      <input id="f_person" placeholder="Internal contact_person"/>
+      <input id="f_channel" placeholder="Internal channel (X/Telegram/Email)"/>
+      <div style="display:flex; gap:8px;">
+        <button id="saveRow" class="btn">Save row</button>
+        <button id="clearForm" class="btn">Clear</button>
+      </div>
+    </div>
+  </details>
+
+  <div style="display:flex; gap:8px; margin:8px 0;">
+    <input type="file" id="importJson" accept="application/json"/>
+    <button id="exportJson" class="btn">Export JSON</button>
+  </div>
+
+  <table id="grid">
+    <thead>
+      <tr>
+        <th>Name</th><th>City</th><th>Country</th><th>Region</th>
+        <th class="muted">lat,lon</th><th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const statusColor = s => (s === "confirmed" ? "#16a34a" : s === "reached" ? "#f59e0b" : "#ef4444");
+  let map, markers = [], data = [];
+  const ORANGE = "#f97316"; // all pins are orange
 
-let map, markers = [], data = [];
-
-function initMap() {
-  map = L.map('map', { worldCopyJump: true }).setView([15, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'&copy; OpenStreetMap'
-  }).addTo(map);
-}
-
-function makeMarker(p) {
-  const m = L.circleMarker([p.lat, p.lon], {
-    radius: 7, fillOpacity: 0.9, weight: 1, color: "#111",
-    fillColor: statusColor(p.status || "none")
-  });
-  const html = `
-    <div class="popup">
-      <h3>${p.name}</h3>
-      <div class="meta">${p.city || ""}${p.city && p.country ? ", " : ""}${p.country || ""}</div>
-      ${p.note ? `<div style="margin:6px 0">${p.note}</div>` : ""}
-      ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener">Open profile</a>` : ""}
-    </div>`;
-  m.bindPopup(html);
-  m.point = p; // attach for filtering
-  return m;
-}
-
-function render() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-
-  const statusVal = document.getElementById('statusFilter').value;
-  const regionVal = document.getElementById('regionFilter').value;
-  const q = document.getElementById('search').value.trim().toLowerCase();
-
-  const filtered = data.filter(p => {
-    const okStatus = statusVal === 'all' || (p.status || 'none') === statusVal;
-    const okRegion = regionVal === 'all' || (p.region || 'Other') === regionVal;
-    const text = `${p.name||""} ${p.city||""} ${p.country||""}`.toLowerCase();
-    const okSearch = !q || text.includes(q);
-    return okStatus && okRegion && okSearch;
-  });
-
-  filtered.forEach(p => {
-    const m = makeMarker(p).addTo(map);
-    markers.push(m);
-  });
-
-  if (filtered.length) {
-    const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.25), { animate: false });
+  function initMap() {
+    map = L.map('map', { worldCopyJump: true }).setView([15, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'&copy; OpenStreetMap'
+    }).addTo(map);
   }
-}
 
-async function loadData() {
-  const res = await fetch('bces.json');
-  data = await res.json();
-  render();
-}
+  function makeMarker(p) {
+    const m = L.circleMarker([p.lat, p.lon], {
+      radius: 7, fillOpacity: 0.9, weight: 1, color: "#111", fillColor: ORANGE
+    });
+    const html = `
+      <div class="popup">
+        <h3>${p.name || ''}</h3>
+        <div class="meta">${p.city || ""}${p.city && p.country ? ", " : ""}${p.country || ""}</div>
+        ${p.note ? `<div style="margin:6px 0">${p.note}</div>` : ""}
+        ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener">Open profile</a>` : ""}
+      </div>`;
+    m.bindPopup(html);
+    m.point = p;
+    return m;
+  }
 
-// events
-['statusFilter','regionFilter','search'].forEach(id => {
-  document.addEventListener('input', e => {
-    if (e.target && e.target.id === id) render();
-  });
-});
+  function render() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
 
-initMap();
-loadData();
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const filtered = data.filter(p => {
+      const text = `${p.name||""} ${p.city||""} ${p.country||""}`.toLowerCase();
+      return !q || text.includes(q);
+    });
+
+    filtered.forEach(p => {
+      const m = makeMarker(p).addTo(map);
+      markers.push(m);
+    });
+
+    if (filtered.length) {
+      const group = L.featureGroup(markers);
+      map.fitBounds(group.getBounds().pad(0.25), { animate: false });
+    } else {
+      map.setView([15, 0], 2);
+    }
+  }
+
+  async function loadData() {
+    const res = await fetch('bces.json');
+    data = await res.json();
+    renderGrid();
+    render();
+  }
+
+  // Search
+  document.getElementById('search').addEventListener('input', render);
+
+  // === ADMIN PANEL ===
+  const $ = id => document.getElementById(id);
+  const admin = $('admin');
+  const gridBody = $('grid').querySelector('tbody');
+  let editIndex = null;
+
+  $('toggleAdmin').onclick = () => {
+    admin.style.display = admin.style.display === 'none' ? 'block' : 'none';
+  };
+
+  function renderGrid() {
+    gridBody.innerHTML = '';
+    (data || []).forEach((p, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.name||''}</td>
+        <td>${p.city||''}</td>
+        <td>${p.country||''}</td>
+        <td>${p.region||''}</td>
+        <td class="muted">${p.lat}, ${p.lon}</td>
+        <td class="row-actions">
+          <button class="btn" data-edit="${i}">Edit</button>
+          <button class="btn" data-del="${i}">Delete</button>
+        </td>`;
+      gridBody.appendChild(tr);
+    });
+  }
+
+  function fillForm(p = {}) {
+    $('f_name').value = p.name || '';
+    $('f_city').value = p.city || '';
+    $('f_country').value = p.country || '';
+    $('f_region').value = p.region || 'Other';
+    $('f_lat').value = p.lat ?? '';
+    $('f_lon').value = p.lon ?? '';
+    $('f_link').value = p.link || '';
+    $('f_note').value = p.note || '';
+    $('f_last').value = p.last_contact || '';
+    $('f_person').value = p.contact_person || '';
+    $('f_channel').value = p.channel || '';
+  }
+
+  $('clearForm').onclick = () => { editIndex = null; fillForm({}); };
+
+  $('saveRow').onclick = () => {
+    const p = {
+      name: $('f_name').value.trim(),
+      city: $('f_city').value.trim(),
+      country: $('f_country').value.trim(),
+      region: $('f_region').value,
+      lat: parseFloat($('f_lat').value),
+      lon: parseFloat($('f_lon').value),
+      link: $('f_link').value.trim(),
+      note: $('f_note').value.trim(),
+      last_contact: $('f_last').value.trim(),
+      contact_person: $('f_person').value.trim(),
+      channel: $('f_channel').value.trim()
+    };
+    if (!p.name || Number.isNaN(p.lat) || Number.isNaN(p.lon)) {
+      alert('Name, lat, and lon are required.'); return;
+    }
+    if (editIndex === null) data.push(p); else data[editIndex] = p;
+    editIndex = null;
+    renderGrid();
+    render();
+    $('f_name').focus();
+  };
+
+  gridBody.onclick = (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const idx = parseInt(btn.dataset.edit ?? btn.dataset.del, 10);
+    if (btn.dataset.edit !== undefined) {
+      editIndex = idx; fillForm(data[idx]); admin.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      if (confirm('Delete this entry?')) {
+        data.splice(idx,1); renderGrid(); render();
+      }
+    }
+  };
+
+  $('importJson').onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) throw new Error('JSON must be an array');
+      data = arr;
+      renderGrid(); render();
+      alert('Imported into editor (not saved to server). Use Export to download bces.json and commit it.');
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  };
+
+  $('exportJson').onclick = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bces.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  initMap();
+  loadData();
 </script>
 </body>
 </html>

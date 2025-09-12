@@ -34,12 +34,12 @@
     <select id="cityFilter"><option value="all">All Cities</option></select>
     <input id="search" type="search" placeholder="Search name/country/region…"/>
     <button id="toggleAdmin" class="btn">Admin</button>
+    <button id="randomCity" class="btn">Random City</button>
   </div>
 </header>
 
 <div id="map"></div>
 
-<!-- ======= ADMIN PANEL ======= -->
 <div id="admin">
   <h2>BCE Editor</h2>
   <div class="muted">Add/edit entries, then Export JSON or Save to GitHub to update the live site.</div>
@@ -58,7 +58,6 @@
       <input id="f_lon" placeholder="Longitude (required)"/>
       <input id="f_link" placeholder="Link (X/Telegram/site)"/>
       <input id="f_note" placeholder="Public note (shown on popup)"/>
-      <!-- internal-only fields -->
       <input id="f_last" placeholder="Internal last_contact"/>
       <input id="f_person" placeholder="Internal contact_person"/>
       <input id="f_channel" placeholder="Internal channel"/>
@@ -108,6 +107,7 @@
         ${p.note ? `<div>${p.note}</div>` : ""}
         ${p.link ? `<a href="${p.link}" target="_blank">Open profile</a>` : ""}
       </div>`);
+    m.point = p;
     return m;
   }
 
@@ -139,7 +139,7 @@
   }
 
   async function loadData() {
-    const res = await fetch('bces.json');
+    const res = await fetch('bces.json?ts=' + Date.now(), { cache: 'no-store' });
     data = await res.json();
     populateCityFilter();
     renderGrid();
@@ -153,10 +153,23 @@
       cities.map(c => `<option>${c}</option>`).join('');
   }
 
+  // ---- Random City ----
+  document.getElementById('randomCity').addEventListener('click', () => {
+    if (!data.length) return;
+    const p = data[Math.floor(Math.random() * data.length)];
+    map.setView([p.lat, p.lon], 9, { animate: true });
+    const marker = markers.find(m => m.point.name === p.name);
+    if (marker) marker.openPopup();
+    const citySel = document.getElementById('cityFilter');
+    if (citySel) {
+      const match = Array.from(citySel.options).find(o => o.text === (p.city || ''));
+      if (match) citySel.value = match.value;
+    }
+  });
+
   document.getElementById('search').addEventListener('input', render);
   document.getElementById('cityFilter').addEventListener('input', render);
 
-  // ----- Admin panel logic (same as before) -----
   const $ = id => document.getElementById(id);
   const admin = $('admin');
   const gridBody = $('grid').querySelector('tbody');

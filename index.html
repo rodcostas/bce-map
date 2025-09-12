@@ -12,12 +12,10 @@
              display: flex; align-items: center; gap: 12px; padding: 0 14px; z-index: 1000; }
     header h1 { font-size: 16px; margin: 0 8px 0 0; font-weight: 600; }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    input[type="search"] { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; }
+    select, input[type="search"] { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; }
     .btn { height: 32px; padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; background:#f9f9f9; cursor:pointer; }
     .popup h3 { margin: 0 0 4px; font-size: 16px; }
     .popup .meta { color: #555; margin-bottom: 6px; }
-
-    /* Admin panel */
     #admin { position: fixed; right: 12px; top: 64px; width: 420px; max-height: 80vh; overflow: auto;
              background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.18); padding:12px; z-index: 1200; display:none; }
     #admin h2 { margin: 0 0 8px; font-size: 16px; }
@@ -33,7 +31,8 @@
 <header>
   <h1>BCE Map</h1>
   <div class="controls">
-    <input id="search" type="search" placeholder="Search name/city/country…"/>
+    <select id="cityFilter"><option value="all">All Cities</option></select>
+    <input id="search" type="search" placeholder="Search name/country/region…"/>
     <button id="toggleAdmin" class="btn">Admin</button>
   </div>
 </header>
@@ -43,7 +42,7 @@
 <!-- ======= ADMIN PANEL ======= -->
 <div id="admin">
   <h2>BCE Editor</h2>
-  <div class="muted">Add/edit entries below. You can Export JSON for manual commit or use <b>Save to GitHub</b> for one-click publish.</div>
+  <div class="muted">Add/edit entries, then Export JSON or Save to GitHub to update the live site.</div>
 
   <details style="margin:8px 0" open>
     <summary><b>Add / Update Entry</b></summary>
@@ -55,14 +54,14 @@
         <option>Latin America</option><option>Africa</option><option>Southeast Asia</option>
         <option>Europe</option><option>North America</option><option>Other</option>
       </select>
-      <input id="f_lat" placeholder="Latitude (e.g., 13.493) — required"/>
-      <input id="f_lon" placeholder="Longitude (e.g., -89.38) — required"/>
+      <input id="f_lat" placeholder="Latitude (required)"/>
+      <input id="f_lon" placeholder="Longitude (required)"/>
       <input id="f_link" placeholder="Link (X/Telegram/site)"/>
       <input id="f_note" placeholder="Public note (shown on popup)"/>
-      <!-- private/internal fields kept in JSON but not shown on map -->
-      <input id="f_last" placeholder="Internal last_contact (YYYY-MM-DD)"/>
+      <!-- internal-only fields -->
+      <input id="f_last" placeholder="Internal last_contact"/>
       <input id="f_person" placeholder="Internal contact_person"/>
-      <input id="f_channel" placeholder="Internal channel (X/Telegram/Email)"/>
+      <input id="f_channel" placeholder="Internal channel"/>
       <div style="display:flex; gap:8px;">
         <button id="saveRow" class="btn">Save row</button>
         <button id="clearForm" class="btn">Clear</button>
@@ -75,19 +74,15 @@
     <button id="exportJson" class="btn">Export JSON</button>
   </div>
 
-  <!-- One-click publish to GitHub -->
   <div style="display:flex; flex-direction:column; gap:6px; margin:8px 0;">
-    <input id="ghToken" type="password" placeholder="GitHub token (fine-grained, contents:write, repo: bce-map)"/>
+    <input id="ghToken" type="password" placeholder="GitHub token (contents:write, repo: bce-map)"/>
     <button id="saveToGitHub" class="btn">Save to GitHub</button>
     <div class="muted">Token is used only in this session and never stored.</div>
   </div>
 
   <table id="grid">
     <thead>
-      <tr>
-        <th>Name</th><th>City</th><th>Country</th><th>Region</th>
-        <th class="muted">lat,lon</th><th></th>
-      </tr>
+      <tr><th>Name</th><th>City</th><th>Country</th><th>Region</th><th class="muted">lat,lon</th><th></th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -95,31 +90,24 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  // ====== STATE ======
   let map, markers = [], data = [];
-  const ORANGE = "#f97316"; // all public pins are orange
+  const ORANGE = "#f97316";
 
-  // ====== MAP ======
   function initMap() {
     map = L.map('map', { worldCopyJump: true }).setView([15, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:'&copy; OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { attribution:'&copy; OpenStreetMap' }).addTo(map);
   }
 
   function makeMarker(p) {
-    const m = L.circleMarker([p.lat, p.lon], {
-      radius: 7, fillOpacity: 0.9, weight: 1, color: "#111", fillColor: ORANGE
-    });
-    const html = `
-      <div class="popup">
+    const m = L.circleMarker([p.lat, p.lon],
+      { radius: 7, fillOpacity: 0.9, weight: 1, color: "#111", fillColor: ORANGE });
+    m.bindPopup(`<div class="popup">
         <h3>${p.name || ''}</h3>
         <div class="meta">${p.city || ""}${p.city && p.country ? ", " : ""}${p.country || ""}</div>
-        ${p.note ? `<div style="margin:6px 0">${p.note}</div>` : ""}
-        ${p.link ? `<a href="${p.link}" target="_blank" rel="noopener">Open profile</a>` : ""}
-      </div>`;
-    m.bindPopup(html);
-    m.point = p;
+        ${p.note ? `<div>${p.note}</div>` : ""}
+        ${p.link ? `<a href="${p.link}" target="_blank">Open profile</a>` : ""}
+      </div>`);
     return m;
   }
 
@@ -128,9 +116,13 @@
     markers = [];
 
     const q = document.getElementById('search').value.trim().toLowerCase();
+    const cityVal = document.getElementById('cityFilter').value;
+
     const filtered = data.filter(p => {
-      const text = `${p.name||""} ${p.city||""} ${p.country||""}`.toLowerCase();
-      return !q || text.includes(q);
+      const okCity = cityVal === 'all' || (p.city || '') === cityVal;
+      const text = `${p.name||""} ${p.country||""} ${p.region||""}`.toLowerCase();
+      const okSearch = !q || text.includes(q);
+      return okCity && okSearch;
     });
 
     filtered.forEach(p => {
@@ -149,14 +141,22 @@
   async function loadData() {
     const res = await fetch('bces.json');
     data = await res.json();
+    populateCityFilter();
     renderGrid();
     render();
   }
 
-  // Search
-  document.getElementById('search').addEventListener('input', render);
+  function populateCityFilter() {
+    const select = document.getElementById('cityFilter');
+    const cities = Array.from(new Set(data.map(d => d.city).filter(Boolean))).sort();
+    select.innerHTML = '<option value="all">All Cities</option>' +
+      cities.map(c => `<option>${c}</option>`).join('');
+  }
 
-  // === ADMIN PANEL ===
+  document.getElementById('search').addEventListener('input', render);
+  document.getElementById('cityFilter').addEventListener('input', render);
+
+  // ----- Admin panel logic (same as before) -----
   const $ = id => document.getElementById(id);
   const admin = $('admin');
   const gridBody = $('grid').querySelector('tbody');
@@ -168,23 +168,18 @@
 
   function renderGrid() {
     gridBody.innerHTML = '';
-    (data || []).forEach((p, i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${p.name||''}</td>
-        <td>${p.city||''}</td>
-        <td>${p.country||''}</td>
-        <td>${p.region||''}</td>
-        <td class="muted">${p.lat}, ${p.lon}</td>
+    (data||[]).forEach((p,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${p.name||''}</td><td>${p.city||''}</td><td>${p.country||''}</td>
+        <td>${p.region||''}</td><td class="muted">${p.lat}, ${p.lon}</td>
         <td class="row-actions">
           <button class="btn" data-edit="${i}">Edit</button>
-          <button class="btn" data-del="${i}">Delete</button>
-        </td>`;
+          <button class="btn" data-del="${i}">Delete</button></td>`;
       gridBody.appendChild(tr);
     });
   }
 
-  function fillForm(p = {}) {
+  function fillForm(p={}) {
     $('f_name').value = p.name || '';
     $('f_city').value = p.city || '';
     $('f_country').value = p.country || '';
@@ -210,111 +205,71 @@
       lon: parseFloat($('f_lon').value),
       link: $('f_link').value.trim(),
       note: $('f_note').value.trim(),
-      // internal-only (kept in JSON)
       last_contact: $('f_last').value.trim(),
       contact_person: $('f_person').value.trim(),
       channel: $('f_channel').value.trim()
     };
     if (!p.name || Number.isNaN(p.lat) || Number.isNaN(p.lon)) {
-      alert('Name, lat, and lon are required.'); return;
+      return alert('Name, lat, and lon are required.');
     }
-    if (editIndex === null) data.push(p); else data[editIndex] = p;
-    editIndex = null;
+    if (editIndex===null) data.push(p); else data[editIndex]=p;
+    editIndex=null;
+    populateCityFilter();
     renderGrid();
     render();
-    $('f_name').focus();
   };
 
-  gridBody.onclick = (e) => {
-    const btn = e.target.closest('button'); if (!btn) return;
-    const idx = parseInt(btn.dataset.edit ?? btn.dataset.del, 10);
-    if (btn.dataset.edit !== undefined) {
-      editIndex = idx; fillForm(data[idx]); admin.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      if (confirm('Delete this entry?')) {
-        data.splice(idx,1); renderGrid(); render();
-      }
-    }
+  gridBody.onclick = (e)=>{
+    const btn=e.target.closest('button'); if(!btn) return;
+    const idx=parseInt(btn.dataset.edit ?? btn.dataset.del,10);
+    if(btn.dataset.edit!==undefined){ editIndex=idx; fillForm(data[idx]); admin.scrollTo({top:0,behavior:'smooth'});}
+    else if(confirm('Delete this entry?')){ data.splice(idx,1); populateCityFilter(); renderGrid(); render(); }
   };
 
-  $('importJson').onchange = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
+  $('importJson').onchange = async (e)=>{
+    const file=e.target.files[0]; if(!file) return;
     try {
-      const text = await file.text();
-      const arr = JSON.parse(text);
-      if (!Array.isArray(arr)) throw new Error('JSON must be an array');
-      data = arr;
-      renderGrid(); render();
-      alert('Imported into editor (not saved to server). Use Export to download bces.json or Save to GitHub.');
-    } catch (err) {
-      alert('Invalid JSON: ' + err.message);
-    }
+      const text=await file.text();
+      const arr=JSON.parse(text);
+      if(!Array.isArray(arr)) throw new Error('JSON must be an array');
+      data=arr; populateCityFilter(); renderGrid(); render();
+      alert('Imported into editor. Export or Save to GitHub to make permanent.');
+    } catch(err){ alert('Invalid JSON: '+err.message);}
   };
 
-  $('exportJson').onclick = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'bces.json';
-    a.click();
+  $('exportJson').onclick = ()=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='bces.json'; a.click();
     URL.revokeObjectURL(a.href);
   };
 
-  // ---- One-click Save to GitHub ----
   async function saveToGitHub() {
-    const token = ($('ghToken')?.value || '').trim();
-    if (!token) return alert('Paste your GitHub token (Contents: Read & Write for rodcostas/bce-map).');
+    const token=($('ghToken')?.value||'').trim();
+    if(!token) return alert('Paste your GitHub token.');
+    const jsonText=JSON.stringify(data,null,2);
+    const contentB64=btoa(unescape(encodeURIComponent(jsonText)));
+    const owner='rodcostas', repo='bce-map', path='bces.json', branch='main';
 
-    // Validate data
-    if (!Array.isArray(data)) return alert('No data array to save.');
-
-    const jsonText = JSON.stringify(data, null, 2);
-    const contentB64 = btoa(unescape(encodeURIComponent(jsonText)));
-
-    const owner = 'rodcostas';
-    const repo  = 'bce-map';
-    const path  = 'bces.json';
-    const branch = 'main';
-
-    // 1) get current SHA (required for updates; ok if 404 for first write)
-    let sha = undefined;
+    let sha;
     try {
-      const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
-      });
-      if (getRes.ok) {
-        const getJson = await getRes.json();
-        sha = getJson.sha;
-      } else if (getRes.status !== 404) {
-        const err = await getRes.json();
-        return alert(`GET failed: ${getRes.status} ${err.message || ''}`);
-      }
-    } catch (e) {
-      return alert('Network error while reading current file: ' + e.message);
-    }
+      const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`,
+        {headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'}});
+      if(r.ok){sha=(await r.json()).sha;}
+      else if(r.status!==404){const e=await r.json();return alert(`GET failed: ${r.status} ${e.message||''}`);}
+    } catch(e){return alert('Network error while reading file: '+e.message);}
 
-    // 2) write new contents
     try {
-      const putRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-        body: JSON.stringify({
-          message: 'Update bces.json via web editor',
-          content: contentB64,
-          sha,
-          branch
-        })
-      });
-      const putJson = await putRes.json();
-      if (!putRes.ok) return alert(`Save failed: ${putRes.status} ${putJson.message || ''}`);
-      alert('✅ Saved to GitHub. Your Pages site will refresh shortly.');
-    } catch (e) {
-      alert('Network error while saving to GitHub: ' + e.message);
-    }
+      const put=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
+        {method:'PUT',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json'},
+         body:JSON.stringify({message:'Update bces.json via web editor',content:contentB64,sha,branch})});
+      const j=await put.json();
+      if(!put.ok) return alert(`Save failed: ${put.status} ${j.message||''}`);
+      alert('✅ Saved to GitHub. Pages will refresh shortly.');
+    } catch(e){ alert('Network error while saving: '+e.message);}
   }
   document.getElementById('saveToGitHub').addEventListener('click', saveToGitHub);
 
-  // Boot
   initMap();
   loadData();
 </script>

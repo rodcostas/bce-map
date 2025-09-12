@@ -8,9 +8,9 @@
     "lon": -89.38,
     "link": "https://x.com/bitcoinbeach",
     "note": "Original circular economy.",
-    "last_contact": "2025-09-11",
+    "last_contact": "",
     "contact_person": "",
-    "channel": "X DM"
+    "channel": ""
   },
 {
     "name": "Bitcoin Berlín",
@@ -21,8 +21,21 @@
     "lon": -88.53050038066988,
     "link": "https://x.com/BitcoinBerlinSV",
     "note": "Up in the mountains.",
-    "last_contact": "2025-09-11",
+    "last_contact": "",
     "contact_person": "",
-    "channel": "X DM"
+    "channel": ""
+  },
+{
+    "name": "Bitcoin Lake",
+    "city": "Panajachel, Sololá 🇬🇹",
+    "country": "Guatemala",
+    "region": "Latin America",
+    "lat": 14.744608608252687,
+    "lon": -91.1527182186598,
+    "link": "https://x.com/LakeBitcoin",
+    "note": "Lake Circular Economy.",
+    "last_contact": "",
+    "contact_person": "",
+    "channel": ""
   }
 ]
